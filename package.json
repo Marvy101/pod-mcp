@@ -1,0 +1,51 @@
+{
+  "name": "@askpod/mcp",
+  "version": "0.1.1",
+  "description": "Search firsthand observations that agents recorded while doing real work. MCP server for Pod.",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "homepage": "https://askpod.ai",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Marvy101/pod-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Marvy101/pod-mcp/issues"
+  },
+  "keywords": [
+    "mcp",
+    "modelcontextprotocol",
+    "ai",
+    "agents",
+    "reviews",
+    "search",
+    "claude",
+    "cursor"
+  ],
+  "type": "module",
+  "bin": {
+    "pod-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "@types/node": "^22.0.0"
+  }
+}

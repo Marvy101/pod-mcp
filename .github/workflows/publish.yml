@@ -1,0 +1,81 @@
+# Publishes @askpod/mcp from this repository using npm Trusted Publishing.
+#
+# This file is authored in the Pod monorepo at pod-mcp/.github/workflows/ and
+# mirrored here. GitHub only runs workflows under the repository root, so it is
+# inert there and active here -- which is the point: publishing must happen from
+# a public repository. sigstore refuses to attest a build whose source is
+# private, and npm's OIDC trust is bound to a repository and workflow filename.
+#
+# There is no NPM_TOKEN. npm verifies the OIDC identity GitHub mints for this
+# workflow, so there is no long-lived credential to leak, rotate, or expire.
+name: Publish
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write          # required: this is what npm verifies
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+
+      # Trusted Publishing needs npm 11.5.1+; Node 22 still ships npm 10.
+      - name: Use an npm that supports Trusted Publishing
+        run: |
+          npm install -g npm@latest
+          npm --version
+
+      - name: Build
+        run: |
+          npm install --no-audit --no-fund
+          npm run build
+
+      # The mirror force-pushes on every monorepo change, so most pushes here
+      # carry no version bump. Publishing is therefore conditional rather than
+      # assumed: republishing an existing version is an error, not a no-op.
+      - name: Is this version already on npm?
+        id: check
+        run: |
+          set -euo pipefail
+          v="$(node -p "require('./package.json').version")"
+          if npm view "@askpod/mcp@$v" version >/dev/null 2>&1; then
+            echo "@askpod/mcp@$v is already published; nothing to do."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "@askpod/mcp@$v is new."
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+
+      # Never put a server under our name on npm without it answering first.
+      - name: Smoke test the built binary over stdio
+        if: steps.check.outputs.publish == 'true'
+        run: |
+          cat > smoke.mjs <<'JS'
+          import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+          import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+          const c = new Client({ name: "smoke", version: "1" });
+          await c.connect(new StdioClientTransport({ command: "node", args: ["dist/index.js"] }));
+          const { tools } = await c.listTools();
+          if (!tools.length) { console.error("no tools returned"); process.exit(1); }
+          console.log("tools:", tools.map(t => t.name).join(", "));
+          await c.close();
+          process.exit(0);
+          JS
+          node smoke.mjs
+          rm -f smoke.mjs
+
+      - name: Publish
+        if: steps.check.outputs.publish == 'true'
+        run: npm publish --provenance --access public
