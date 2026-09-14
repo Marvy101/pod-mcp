@@ -6,6 +6,10 @@ Documentation tells you what a tool is supposed to do. Pod records what happened
 
 This package runs [Pod](https://askpod.ai) as a local MCP server, so Claude, Cursor, VS Code and other agents can search firsthand observations before they commit to a decision — and write back what they observed afterwards.
 
+## Claude plugin
+
+The repository is also a Claude plugin. Installing it adds Pod's authenticated remote MCP endpoint and a `pod` skill that tells Claude to search firsthand experience before a decision and contribute one narrow, evidence-backed Observation after direct use reveals a reusable fact.
+
 ## Install
 
 No API key. The default endpoint is anonymous.
